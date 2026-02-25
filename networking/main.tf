@@ -9,7 +9,7 @@ resource "aws_vpc" "main" {
   enable_dns_support   = true
 
   tags = {
-    Name  = "main",
+    Name  = "main-${var.owner}",
     Owner = var.owner
   }
 }
@@ -24,6 +24,7 @@ resource "aws_subnet" "public" {
   tags = {
     Name  = "public-${data.aws_availability_zones.available.names[count.index]}",
     Owner = lower(var.owner)
+    Type  = "public"
   }
 }
 
@@ -37,6 +38,7 @@ resource "aws_subnet" "private" {
   tags = {
     Name  = "private-${data.aws_availability_zones.available.names[count.index]}",
     Owner = lower(var.owner)
+    Type  = "private"
   }
 }
 
@@ -52,7 +54,6 @@ resource "aws_internet_gateway" "igw" {
 
 # Elastic IP for NAT Gateway
 resource "aws_eip" "nat_eip" {
-  vpc        = true
   depends_on = [aws_internet_gateway.igw]
 }
 

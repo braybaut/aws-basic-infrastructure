@@ -7,6 +7,7 @@ variable "aws_region" {
 # Custom Variables
 variable "owner" {
   description = "Owner of the app"
+  default     = "bray"
 }
 
 # VPC Variables

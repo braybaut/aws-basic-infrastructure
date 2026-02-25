@@ -1,6 +1,5 @@
 module "networking" {
-  #source                     = "./networking"
-  source                     = "git@github.com:braybaut/aws-basic-infrastructure.git//networking"
+  source                     = "./networking"
   aws_region                 = var.aws_region
   owner                      = var.owner
   vpc_cidr_block             = var.vpc_cidr_block

@@ -1,0 +1,11 @@
+apiVersion: rds.aws.m.upbound.io/v1beta1
+kind: SubnetGroup
+metadata:
+  name: small-database-subnet-group
+  namespace: default
+spec:
+  forProvider:
+    region: us-east-1
+    subnetIds:
+      - subnet-086c285de4d1ea0e5
+      - subnet-0805fff946bdfcbc4

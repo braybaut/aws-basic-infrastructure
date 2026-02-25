@@ -1,0 +1,15 @@
+apiVersion: s3.aws.m.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  namespace: default
+  name: cloudcamp-test-crossplane-v5
+  labels:
+    bucket-name: cloudcamp-test-crossplane-v5
+spec:
+  forProvider:
+    region: us-east-1
+    tags:
+      Environment: development
+#  providerConfigRef:
+#    name: default
+#    kind: ClusterProviderConfig

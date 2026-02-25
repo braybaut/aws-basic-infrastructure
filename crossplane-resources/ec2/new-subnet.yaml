@@ -1,0 +1,10 @@
+apiVersion: ec2.aws.m.upbound.io/v1beta1
+kind: Subnet
+metadata:
+  name: crossplane-private-subnet
+spec:
+  forProvider:
+    availabilityZone: us-east-1a
+    cidrBlock: 10.0.7.0/24
+    region: us-east-1
+    vpcId: vpc-067dbfd55af6fb0f8

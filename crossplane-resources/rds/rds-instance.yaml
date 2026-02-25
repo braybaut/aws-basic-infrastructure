@@ -1,0 +1,30 @@
+apiVersion: rds.aws.m.upbound.io/v1beta1
+kind: Instance
+metadata:
+  name: small-database
+  namespace: default
+spec:
+  forProvider:
+    identifier: small-database
+    region: us-east-1
+    engine: postgres
+    engineVersion: "17.4"
+    instanceClass: db.t3.micro
+    allocatedStorage: 20
+    dbName: cloudcampdb
+    username: cloudcamp
+    autoGeneratePassword: true
+    passwordSecretRef:
+      key: password
+      name: example-dbinstance
+    backupRetentionPeriod: 1
+    backupWindow: 03:00-05:00
+    maintenanceWindow: Mon:00:00-Mon:03:00
+    multiAz: false
+    publiclyAccessible: false
+    storageEncrypted: true
+    dbSubnetGroupNameRef:
+      name: small-database-subnet-group
+    skipFinalSnapshot: true
+  writeConnectionSecretToRef:
+    name: database-credentials-out
