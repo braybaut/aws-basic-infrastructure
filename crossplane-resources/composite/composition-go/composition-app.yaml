@@ -1,0 +1,36 @@
+apiVersion: api.nequi.io/v1
+kind: App
+metadata:
+  namespace: default
+  name: my-app-cloudcamp-v1
+spec:
+  image: nginx
+  replicas: 2
+  port: 8080
+  resources:
+    requests:
+      #      memory: "64Mi"
+      cpu: "250m"
+    limits:
+      #      memory: "128Mi"
+      cpu: "500m"
+  createService: true
+  createBucket: true
+  bucketRegion: us-east-1
+  bucketTags:
+    Environment: production
+  createDatabase: true
+  dbConfig:
+    user: cloudcamp
+    identifier: my-db
+    region: us-east-1
+    engine: postgres
+    engineVersion: "17.4"
+    instanceClass: db.t3.micro
+    allocatedStorage: 20
+    name: cloudcampdb
+    backupRetentionPeriod: 1
+    publiclyAccessible: false
+    subnetIds:
+      - subnet-086c285de4d1ea0e5
+      - subnet-0805fff946bdfcbc4

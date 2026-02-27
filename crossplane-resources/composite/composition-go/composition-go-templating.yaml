@@ -1,0 +1,149 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: app-yaml
+spec:
+  compositeTypeRef:
+    apiVersion: api.nequi.io/v1
+    kind: App
+  mode: Pipeline
+  pipeline:
+    - step: render-resources
+      functionRef:
+        name: crossplane-contrib-function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- if .observed.composite.resource.spec.createService }}
+            apiVersion: v1
+            kind: Service
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: {{ .observed.composite.resource.metadata.name }}-service
+              name: {{ .observed.composite.resource.metadata.name }}
+              labels:
+                example.crossplane.io/app: {{ .observed.composite.resource.metadata.name }}
+            spec:
+              selector:
+                example.crossplane.io/app: {{ .observed.composite.resource.metadata.name }}
+              ports:
+              - protocol: TCP
+                port: 8080
+                targetPort: {{ .observed.composite.resource.spec.port | default 80 }}
+            {{- end }}
+            {{- if .observed.composite.resource.spec.createBucket }}
+            ---
+            apiVersion: s3.aws.m.upbound.io/v1beta1
+            kind: Bucket
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: {{ .observed.composite.resource.metadata.name }}-bucket
+              name: {{ .observed.composite.resource.metadata.name }}-bucket
+              labels:
+                example.crossplane.io/app: {{ .observed.composite.resource.metadata.name }}
+            spec:
+              forProvider:
+                region: {{ .observed.composite.resource.spec.bucketRegion | default "us-east-1" }}
+                {{- if .observed.composite.resource.spec.bucketTags }}
+                tags:
+                  {{- range $key, $value := .observed.composite.resource.spec.bucketTags }}
+                  {{ $key }}: "{{ $value }}"
+                  {{- end }}
+                {{- else }}
+                tags:
+                  Environment: development
+                {{- end }}
+            {{- end }}
+            {{- if and .observed.composite.resource.spec.createDatabase .observed.composite.resource.spec.dbConfig.subnetIds }}
+            ---
+            apiVersion: rds.aws.m.upbound.io/v1beta1
+            kind: SubnetGroup
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: {{ .observed.composite.resource.spec.dbConfig.identifier | default (printf "%s-db" .observed.composite.resource.metadata.name) }}-subnet-group
+              name: {{ .observed.composite.resource.spec.dbConfig.identifier | default (printf "%s-db" .observed.composite.resource.metadata.name) }}-subnet-group
+              labels:
+                example.crossplane.io/app: {{ .observed.composite.resource.metadata.name }}
+            spec:
+              forProvider:
+                region: {{ .observed.composite.resource.spec.dbConfig.region | default "us-east-1" }}
+                subnetIds:
+                  {{- range .observed.composite.resource.spec.dbConfig.subnetIds }}
+                  - {{ . }}
+                  {{- end }}
+            {{- end }}
+            {{- if .observed.composite.resource.spec.createDatabase }}
+            ---
+            apiVersion: rds.aws.m.upbound.io/v1beta1
+            kind: Instance
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: {{ .observed.composite.resource.spec.dbConfig.identifier | default (printf "%s-db" .observed.composite.resource.metadata.name) }}
+              name: {{ .observed.composite.resource.spec.dbConfig.identifier | default (printf "%s-db" .observed.composite.resource.metadata.name) }}
+              labels:
+                example.crossplane.io/app: {{ .observed.composite.resource.metadata.name }}
+            spec:
+              forProvider:
+                identifier: {{ .observed.composite.resource.spec.dbConfig.identifier | default (printf "%s-db" .observed.composite.resource.metadata.name) }}
+                region: {{ .observed.composite.resource.spec.dbConfig.region | default "us-east-1" }}
+                engine: {{ .observed.composite.resource.spec.dbConfig.engine | default "postgres" }}
+                {{- if .observed.composite.resource.spec.dbConfig.engineVersion }}
+                engineVersion: "{{ .observed.composite.resource.spec.dbConfig.engineVersion }}"
+                {{- end }}
+                instanceClass: {{ .observed.composite.resource.spec.dbConfig.instanceClass | default "db.t3.micro" }}
+                allocatedStorage: {{ .observed.composite.resource.spec.dbConfig.allocatedStorage | default 20 }}
+                dbName: {{ .observed.composite.resource.spec.dbConfig.name | default "cloudcampdb" }}
+                username: {{ .observed.composite.resource.spec.dbConfig.user }}
+                autoGeneratePassword: true
+                passwordSecretRef:
+                  key: password
+                  name: {{ .observed.composite.resource.metadata.name }}-db-password
+                backupRetentionPeriod: {{ .observed.composite.resource.spec.dbConfig.backupRetentionPeriod | default 1 }}
+                publiclyAccessible: {{ .observed.composite.resource.spec.dbConfig.publiclyAccessible | default false }}
+                storageEncrypted: true
+                skipFinalSnapshot: true
+                {{- if .observed.composite.resource.spec.dbConfig.subnetIds }}
+                dbSubnetGroupNameRef:
+                  name: {{ .observed.composite.resource.spec.dbConfig.identifier | default (printf "%s-db" .observed.composite.resource.metadata.name) }}-subnet-group
+                {{- end }}
+              writeConnectionSecretToRef:
+                name: {{ .observed.composite.resource.metadata.name }}-db-credentials
+            {{- end }}
+            ---
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: {{ .observed.composite.resource.metadata.name }}
+              name: {{ .observed.composite.resource.metadata.name }}
+              labels:
+                example.crossplane.io/app: {{ .observed.composite.resource.metadata.name }}
+            spec:
+              replicas: {{ .observed.composite.resource.spec.replicas | default 2 }}
+              selector:
+                matchLabels:
+                  example.crossplane.io/app: {{ .observed.composite.resource.metadata.name }}
+              template:
+                metadata:
+                  labels:
+                    example.crossplane.io/app: {{ .observed.composite.resource.metadata.name }}
+                spec:
+                  containers:
+                  - name: app
+                    image: {{ .observed.composite.resource.spec.image }}
+                    ports:
+                    - containerPort: {{ .observed.composite.resource.spec.port | default 80 }}
+                    {{- if .observed.composite.resource.spec.resources }}
+                    resources:
+                      requests:
+                        memory: "{{ .observed.composite.resource.spec.resources.requests.memory | default "50Mi" }}"
+                        cpu: "{{ .observed.composite.resource.spec.resources.requests.cpu | default "100m" }}"
+                      {{- if .observed.composite.resource.spec.resources.limits }}
+                      limits:
+                        memory: "{{ .observed.composite.resource.spec.resources.limits.memory | default "50Mi" }}"
+                        cpu: "{{ .observed.composite.resource.spec.resources.limits.cpu }}"
+                      {{- end }}
+                    {{- end }}

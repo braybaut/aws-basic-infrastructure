@@ -1,0 +1,136 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: apps.api.nequi.io
+spec:
+  scope: Namespaced
+  group: api.nequi.io
+  names:
+    kind: App
+    plural: apps
+  versions:
+    - name: v1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                image:
+                  description: The app's OCI container image.
+                  type: string
+                replicas:
+                  description: The number of replicas.
+                  type: integer
+                  default: 2
+                port:
+                  description: The container port.
+                  type: integer
+                  default: 80
+                resources:
+                  description: Compute resources for the container.
+                  type: object
+                  default:
+                    requests:
+                      memory: "50Mi"
+                      cpu: "100m"
+                  properties:
+                    requests:
+                      type: object
+                      default:
+                        memory: "50Mi"
+                        cpu: "100m"
+                      properties:
+                        memory:
+                          type: string
+                          default: "50Mi"
+                        cpu:
+                          type: string
+                          default: "100m"
+                    limits:
+                      type: object
+                      properties:
+                        memory:
+                          type: string
+                        cpu:
+                          type: string
+                createService:
+                  description: Whether to create a Kubernetes Service.
+                  type: boolean
+                  default: true
+                createBucket:
+                  description: Whether to create an S3 Bucket.
+                  type: boolean
+                  default: false
+                bucketRegion:
+                  description: The S3 bucket region.
+                  type: string
+                  default: us-east-1
+                bucketTags:
+                  description: Tags for the S3 bucket.
+                  type: object
+                  additionalProperties:
+                    type: string
+                createDatabase:
+                  description: Whether to create a Database.
+                  type: boolean
+                  default: false
+                dbConfig:
+                  description: Database configuration.
+                  type: object
+                  properties:
+                    user:
+                      description: The database user.
+                      type: string
+                    identifier:
+                      description: The database identifier.
+                      type: string
+                    region:
+                      description: The database region.
+                      type: string
+                      default: us-east-1
+                    engine:
+                      description: The database engine.
+                      type: string
+                      default: postgres
+                    engineVersion:
+                      description: The database engine version.
+                      type: string
+                    instanceClass:
+                      description: The database instance class.
+                      type: string
+                      default: db.t3.micro
+                    allocatedStorage:
+                      description: The allocated storage in GB.
+                      type: integer
+                      default: 20
+                    name:
+                      description: The database name.
+                      type: string
+                    backupRetentionPeriod:
+                      description: Backup retention period in days.
+                      type: integer
+                      default: 1
+                    publiclyAccessible:
+                      description: Whether the database is publicly accessible.
+                      type: boolean
+                      default: false
+                    subnetIds:
+                      description: Subnet IDs for RDS subnet group.
+                      type: array
+                      items:
+                        type: string
+              required:
+                - image
+            status:
+              type: object
+              properties:
+                replicas:
+                  description: The number of available app replicas.
+                  type: integer
+                address:
+                  description: The app's IP address.
+                  type: string
